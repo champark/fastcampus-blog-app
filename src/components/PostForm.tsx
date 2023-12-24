@@ -1,17 +1,21 @@
-import { useContext, useState } from "react";
-import { collection, addDoc } from "firebase/firestore";
+import { useContext, useEffect, useState } from "react";
+import { collection, addDoc, doc, getDoc } from "firebase/firestore";
 import { db } from "firebaseApp";
 import AuthContext from "context/AuthContext";
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
+import { PostProps } from "./PostList";
 
 export default function PostForm() {
+    const params = useParams();
+    const [post, setPost] = useState<PostProps | null>(null);
     const [title, setTitle] = useState<string>("");
     const [summary, setSummary] = useState<string>("");
     const [content, setContent] = useState<string>("");
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
+    console.log(post);
 
     const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -35,8 +39,8 @@ export default function PostForm() {
     };
 
     const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { 
-            target: { name, value }, 
+        const {
+            target: { name, value },
         } = e;
 
         if (name === "title") {
@@ -50,19 +54,40 @@ export default function PostForm() {
         }
     };
 
+    const getPost = async (id: string) => {
+        if (id) {
+            const docRef = doc(db, "posts", id);
+            const docSnap = await getDoc(docRef);
+
+            setPost({ id: docSnap.id, ...(docSnap.data() as PostProps) });
+        }
+    };
+
+    useEffect(() => {
+        if (params?.id) getPost(params?.id);
+    }, [params?.id]);
+
+    useEffect(() => {
+        if(post) {
+            setTitle(post?.title);
+            setSummary(post?.summary);
+            setContent(post?.content);
+        }
+    }, [post]);
+
     return <form onSubmit={onSubmit} className="form">
         <div className="form__block">
             <label htmlFor="title">제목</label>
-            <input type="text" name="title" id="title" required onChange={onChange} value={title}/>
+            <input type="text" name="title" id="title" required onChange={onChange} value={title} />
         </div>
         <div className="form__block">
             <label htmlFor="summary">요약</label>
-            <input type="text" name="summary" 
-            id="summary" required onChange={onChange} value={summary}/>
+            <input type="text" name="summary"
+                id="summary" required onChange={onChange} value={summary} />
         </div>
         <div className="form__block">
             <label htmlFor="content">내용</label>
-            <textarea name="content" id="content" required onChange={onChange} value={content}/>
+            <textarea name="content" id="content" required onChange={onChange} value={content} />
         </div>
         <div className="form__block">
             <input type="submit" value="제출" className="form__btn--submit" />
